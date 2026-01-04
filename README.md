@@ -1,197 +1,159 @@
-# Multi-Channel Sales Analytics Platform  
-**Data Warehouse · ETL Pipelines · Near Real-Time Reporting · BI Dashboard**
-
+# Multi-Channel Sales Analytics Platform
+**PostgreSQL · SQL ETL · Data Warehouse · Analytics Mart**
+> 中文版本請見 [README_zh_TW.md](README_zh_TW.md)
 ---
 
 ## 📌 Project Overview
 
-This project simulates a **real-world enterprise data engineering & analytics scenario** in a large retail / telecom company.
+This project is an **end-to-end data engineering & analytics pipeline** built on PostgreSQL, using a public retail transaction dataset.
 
-The goal is to build an **end-to-end data platform** that enables stakeholders to:
+The goal is to demonstrate how raw transactional data can be transformed into **clean, analytics-ready data marts** for business analysis, following **modern data warehouse layering principles**.
 
-- Monitor **daily and monthly sales performance**
-- Analyze **multi-channel efficiency** (direct stores, franchise stores, online)
-- Track **near real-time sales war room metrics** (15-minute windows)
-- Support **management and operations decision-making** via BI dashboards
-
-This project is designed to be **portfolio-ready** and aligned with **Data Engineer / Data Analyst / Analytics Engineer** roles.
+This project is designed as a **portfolio project** for **Data Engineer / Analytics Engineer** roles.
 
 ---
 
-## 🏢 Business Scenario (Simulated)
+## 🏢 Business Context (Simulated)
 
-- Industry: Retail / Telecommunications  
-- Channels:
-  - Direct Stores
-  - Franchise Stores
-  - Online
-- Use Cases:
-  - Daily / Monthly sales reports
-  - Channel & store performance ranking
-  - Sales anomaly detection
-  - Near real-time sales monitoring during campaigns
+- Industry: Retail
+- Data Type: Transaction-level sales data
+- Key Questions:
+  - How is sales performing over time?
+  - What are daily and monthly revenue trends?
+  - Who are the most valuable customers?
 
 ---
 
 ## 🏗️ Architecture Overview
 
-[ Data Source ]
-└─ Public Dataset + Mock Data
-↓
-[ Raw Layer ] (PostgreSQL)
-└─ raw_orders
-└─ raw_order_items
-└─ raw_product
-└─ raw_store
-└─ raw_channel
-↓
-[ Staging Layer ]
-└─ Data cleaning, deduplication, normalization
-↓
-[ Data Warehouse ]
-└─ Star Schema
-├─ fact_sales
-├─ dim_date
-├─ dim_product
-├─ dim_store
-├─ dim_channel
-↓
-[ Data Marts ]
-└─ Daily / Monthly Aggregates
-└─ Near Real-Time (15-min window)
-↓
-[ BI Layer ]
-└─ Management Dashboard
-└─ Operations & Channel Analysis
-└─ Near Real-Time War Room
+```text
+[ Excel Dataset ]
+        |
+        v
+[ Raw Layer ]      (append-only, traceable)
+  └─ raw.online_retail_txn
+        |
+        v
+[ Staging Layer ]  (cleaned, filtered, standardized)
+  └─ stg.online_retail_txn
+        |
+        v
+[ Data Mart ]      (analytics-ready aggregates & features)
+  ├─ mart.sales_daily
+  ├─ mart.sales_monthly
+  └─ mart.customer_rfm
+```
 
 ---
 
-## 🧱 Data Model (Star Schema)
+## 🧱 Data Layers & Design
 
-**Fact Table**
-- `fact_sales`
-  - Grain: Order line level
-  - Metrics: quantity, gross_amount, discount_amount, net_amount, margin
-  - Time: order timestamp, load timestamp
+### 1️⃣ Raw Layer (`raw`)
+Purpose: **Preserve original data with minimal transformation**
 
-**Dimension Tables**
-- `dim_date` – calendar, month, week, weekday
-- `dim_product` – SKU, category, brand
-- `dim_store` – store, region, channel mapping
-- `dim_channel` – direct / franchise / online
+- Source: Online Retail II dataset
+- Table:
+  - `raw.online_retail_txn`
+- Characteristics:
+  - Append-only ingestion
+  - Minimal type casting
+  - Full data traceability
 
 ---
 
-## 🔄 ETL & Data Pipeline
+### 2️⃣ Staging Layer (`stg`)
+Purpose: **Clean and standardize data for analysis**
 
-- Language: **Python + SQL**
+- Table:
+  - `stg.online_retail_txn`
+- Transformations:
+  - Remove invalid records (negative quantity / price)
+  - Exclude missing customer IDs
+  - Standardize timestamps
+  - Derive revenue and date fields
+
+---
+
+### 3️⃣ Analytics Mart (`mart`)
+Purpose: **Optimized tables for BI and analytical queries**
+
+#### `mart.sales_daily`
+Daily sales KPIs:
+- Revenue
+- Orders
+- Customers
+- Items sold
+- Average Order Value (AOV)
+
+#### `mart.sales_monthly`
+Monthly aggregated metrics:
+- Revenue
+- Orders
+- Customers
+- Items sold
+- Average Order Value (AOV)
+
+#### `mart.customer_rfm`
+Customer segmentation using **RFM analysis**:
+- Recency (days since last purchase)
+- Frequency (distinct orders)
+- Monetary (total revenue)
+
+---
+
+## 🔄 ETL Pipeline
+
+- Language: **SQL + Python**
 - Database: **PostgreSQL**
+- Steps:
+  1. Excel → CSV (Python / pandas)
+  2. CSV → Raw (PostgreSQL `\copy`)
+  3. Raw → Staging (data cleaning & standardization)
+  4. Staging → Mart (aggregation & analytics features)
 
-### Pipeline Layers
-1. **Raw Layer**
-   - Append-only ingestion
-   - Full data traceability
-2. **Staging Layer**
-   - Deduplication
-   - Missing value handling
-   - Data type standardization
-3. **Warehouse Layer**
-   - Surrogate key generation
-   - Fact & dimension loading
-   - Incremental and idempotent design
-4. **Data Mart**
-   - Optimized for BI & real-time queries
+All transformations are **re-runnable and idempotent**.
 
 ---
 
-## ⚡ Near Real-Time Reporting
+## 📊 Example Analytics Use Cases
 
-- Time window: **Last 15 minutes**
-- Refresh strategy: batch simulation (every 5 minutes)
-- Metrics:
-  - Sales amount
-  - Order count
-  - Channel/store ranking
-  - Short-term anomaly detection
-
-This design reflects **practical enterprise constraints** where streaming systems may not always be available.
-
----
-
-## 📊 BI Dashboard Design
-
-### 1. Executive Overview
-- Today sales
-- Month-to-date (MTD)
-- MoM growth rate
-- Channel contribution
-- Top stores & products
-
-### 2. Operations & Channel Analysis
-- Channel vs region performance
-- Store ranking & efficiency
-- Average order value (AOV)
-- Sales trends with moving averages
-
-### 3. Near Real-Time War Room
-- Last 15-min sales & orders
-- Live store ranking
-- Sales fluctuation alerts
-
----
-
-## 🧪 Data Quality & Reliability
-
-Implemented checks include:
-- Primary key uniqueness
-- Foreign key integrity
-- Sales amount validity
-- Daily volume anomaly detection
-- Late-arriving data monitoring
-
-ETL jobs are designed to be **re-runnable and fault-tolerant**.
-
----
-
-## 📂 Data Source
-
-- **Online Retail II Dataset**
-  - Public transactional retail dataset
-  - Extended with simulated multi-channel & store dimensions
-  - Used widely for analytics and data engineering practice
+- Daily and monthly sales performance monitoring
+- Revenue trend analysis
+- Customer value segmentation (RFM)
+- Average order value (AOV) and purchasing behavior analysis
 
 ---
 
 ## 🛠️ Tech Stack
 
 - PostgreSQL
-- Python
+- Python (pandas)
 - SQL
-- Power BI / Tableau (assumed)
 - Git & GitHub
 
 ---
 
-## 🎯 Project Goal
+## 🎯 Key Learning Outcomes
 
 This project demonstrates the ability to:
 
-- Design scalable data models
-- Build maintainable ETL pipelines
-- Perform advanced SQL analytics
-- Deliver actionable BI insights
-- Think from both **engineering** and **business** perspectives
+- Design layered data warehouse schemas (raw / stg / mart)
+- Build reliable SQL-based ETL pipelines
+- Apply real-world data cleaning rules
+- Create analytics-ready data marts
+- Translate business questions into data models
 
 ---
 
-## 🚀 Next Steps
+## 🚀 Possible Extensions
 
-- Implement raw & staging schemas
-- Build mock data generator
-- Develop ETL scripts
-- Create BI dashboards
-- Add monitoring & logging
+- Add dimension tables (date, product, customer, country)
+- Implement incremental loading (watermark / idempotent upsert)
+- Add near real-time aggregation (e.g., 15-min window)
+- Connect BI tools (Power BI / Tableau)
 
+---
 
+## 📂 Data Source
 
+- **Online Retail II Dataset** (public dataset)
