@@ -9,8 +9,6 @@ This project is an **end-to-end data engineering & analytics pipeline** built on
 
 The goal is to demonstrate how raw transactional data can be transformed into **clean, analytics-ready data marts** for business analysis, following **modern data warehouse layering principles**.
 
-This project is designed as a **portfolio project** for **Data Engineer / Analytics Engineer** roles.
-
 ---
 
 ## 🏢 Business Context (Simulated)
